@@ -8,11 +8,11 @@
 
 #include <sdf/sdf.hh>
 
-#include "ignition/gazebo/config.hh"
-#include "ignition/gazebo/EntityComponentManager.hh"
-#include "ignition/gazebo/Model.hh"
+#include <ignition/gazebo/config.hh>
+#include <ignition/gazebo/EntityComponentManager.hh>
+#include <ignition/gazebo/Model.hh>
 
-#include "Parameters.hh"
+#include <Parameters.h>
 
 //}
 

@@ -1,6 +1,6 @@
 /* includes //{ */
 
-#include <BacaSE3Controller.hh>
+#include <SE3Controller.h>
 
 //}
 
@@ -17,9 +17,9 @@ namespace multicopter_control
 
 // | ------------------------- PUBLIC ------------------------- |
 
-/* BacaSE3Controller() //{ */
+/* SE3Controller() //{ */
 
-BacaSE3Controller::BacaSE3Controller(const BacaSE3ControllerParameters &controller_parameters, const VehicleParameters &vehicle_parameters) {
+SE3Controller::SE3Controller(const SE3ControllerParameters &controller_parameters, const VehicleParameters &vehicle_parameters) {
 
   _controller_parameters_ = controller_parameters;
   _vehicle_parameters_    = vehicle_parameters;
@@ -31,8 +31,8 @@ BacaSE3Controller::BacaSE3Controller(const BacaSE3ControllerParameters &controll
 
 /* CalculateRotorVelocities() //{ */
 
-Eigen::VectorXd BacaSE3Controller::CalculateRotorVelocities(const FrameData &simulator_model_data, const EigenTwist &control_command,
-                                                            const BacaSE3ControllerFeedforward &feedforward_command) const {
+Eigen::VectorXd SE3Controller::CalculateRotorVelocities(const FrameData &simulator_model_data, const EigenTwist &control_command,
+                                                        const SE3ControllerFeedforward &feedforward_command) const {
 
   // | ----- transform the stuff from the body to the world ----- |
 
@@ -72,7 +72,7 @@ Eigen::VectorXd BacaSE3Controller::CalculateRotorVelocities(const FrameData &sim
 
 /* InitializeParameters() //{ */
 
-bool BacaSE3Controller::InitializeParameters() {
+bool SE3Controller::InitializeParameters() {
 
   auto allocationMatrix = calculateAllocationMatrix(_vehicle_parameters_.rotorConfiguration);
 
@@ -110,8 +110,8 @@ bool BacaSE3Controller::InitializeParameters() {
 
 /* ComputeDesiredAcceleration() //{ */
 
-Eigen::Vector3d BacaSE3Controller::ComputeDesiredAcceleration(const FrameData &simulator_model_data, const Eigen::Vector3d &vel_ref,
-                                                              const Eigen::Vector3d &acc_ref) const {
+Eigen::Vector3d SE3Controller::ComputeDesiredAcceleration(const FrameData &simulator_model_data, const Eigen::Vector3d &vel_ref,
+                                                          const Eigen::Vector3d &acc_ref) const {
 
   // the velocity error
   Eigen::Vector3d velocity_error = vel_ref - simulator_model_data.linearVelocityWorld;
@@ -127,8 +127,6 @@ Eigen::Vector3d BacaSE3Controller::ComputeDesiredAcceleration(const FrameData &s
   // --------------------------------------------------------------
   des_accel = des_accel.cwiseAbs().cwiseMin(_controller_parameters_.max_linear_acceleration).cwiseProduct(des_accel.cwiseSign());
 
-  /* std::cout << "des_accel " << std::endl << des_accel[0] << " ff " << acc_ref[0] << std::endl; */
-
   // + gravity compensation
   return des_accel - _vehicle_parameters_.gravity;
 }
@@ -137,8 +135,8 @@ Eigen::Vector3d BacaSE3Controller::ComputeDesiredAcceleration(const FrameData &s
 
 /* SO3Controller() //{ */
 
-Eigen::Vector3d BacaSE3Controller::SO3Controller(const FrameData &simulator_model_data, const Eigen::Vector3d &des_acceleration,
-                                                 const Eigen::Vector3d &des_jerk, const double &des_yaw_rate) const {
+Eigen::Vector3d SE3Controller::SO3Controller(const FrameData &simulator_model_data, const Eigen::Vector3d &des_acceleration, const Eigen::Vector3d &des_jerk,
+                                             const double &des_yaw_rate) const {
 
   // current orientation
   const Eigen::Matrix3d &R = simulator_model_data.pose.linear();
@@ -171,27 +169,27 @@ Eigen::Vector3d BacaSE3Controller::SO3Controller(const FrameData &simulator_mode
   // orientation error vector
   Eigen::Vector3d R_e_vec = vectorFromSkewMatrix(R_e);
 
-  /* std::cout << "R_e_vec " << std::endl << R_e_vec << std::endl; */
-
   // | -------------------- jerk feedforward -------------------- |
 
-  Eigen::Vector3d q_feedforward = Eigen::Vector3d(0, 0, 0);
+  Eigen::Vector3d w_feedforward = Eigen::Vector3d(0, 0, 0);
 
   Eigen::Matrix3d I;
   I << 0, 1, 0, -1, 0, 0, 0, 0, 0;
   Eigen::Vector3d desired_jerk = Eigen::Vector3d(des_jerk[0], des_jerk[1], des_jerk[2]);
-  q_feedforward                = (I.transpose() * Rd.transpose() * desired_jerk) / (des_acceleration.dot(R.col(2)));
+  w_feedforward                = (I.transpose() * Rd.transpose() * desired_jerk) / (des_acceleration.dot(R.col(2)));
 
   // | ------------------ angular rate control ------------------ |
 
-  // des angular rate from the control command
+  // des angular rate from the feedforward control command
   Eigen::Vector3d des_angular_rate;
-  des_angular_rate = Eigen::Vector3d(0, 0, des_yaw_rate) + q_feedforward;
+  des_angular_rate = Eigen::Vector3d(0, 0, des_yaw_rate) + w_feedforward;
 
   // angular rate error
   Eigen::Vector3d w_e = simulator_model_data.angularVelocityBody - R.transpose() * Rd * des_angular_rate;
 
-  return -1 * R_e_vec.cwiseProduct(normalized_attitude_gain_) - w_e.cwiseProduct(normalized_angular_rate_gain_);
+  Eigen::Vector3d des_angular_acceleration = -R_e_vec.cwiseProduct(normalized_attitude_gain_) - w_e.cwiseProduct(normalized_angular_rate_gain_);
+
+  return des_angular_acceleration;
 }
 
 //}

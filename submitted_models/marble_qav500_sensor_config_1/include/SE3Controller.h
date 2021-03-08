@@ -1,8 +1,8 @@
-#ifndef IGNITION_GAZEBO_SYSTEMS_MULTICOPTER_CONTROL_BACASE3CONTROLLER_HH_
-#define IGNITION_GAZEBO_SYSTEMS_MULTICOPTER_CONTROL_BACASE3CONTROLLER_HH_
+#ifndef IGNITION_GAZEBO_SYSTEMS_MULTICOPTER_CONTROL_SE3CONTROLLER_HH_
+#define IGNITION_GAZEBO_SYSTEMS_MULTICOPTER_CONTROL_SE3CONTROLLER_HH_
 
 #include <Eigen/Geometry>
-#include <Common.hh>
+#include <Common.h>
 #include <ignition/gazebo/config.hh>
 
 namespace ignition
@@ -17,7 +17,7 @@ namespace systems
 namespace multicopter_control
 {
 
-struct BacaSE3ControllerParameters
+struct SE3ControllerParameters
 {
   Eigen::Vector3d velocity_gain;
   Eigen::Vector3d attitude_gain;
@@ -25,26 +25,26 @@ struct BacaSE3ControllerParameters
   Eigen::Vector3d max_linear_acceleration;
 };
 
-struct BacaSE3ControllerFeedforward
+struct SE3ControllerFeedforward
 {
   Eigen::Vector3d acceleration;
   Eigen::Vector3d jerk;
 };
 
-class BacaSE3Controller {
+class SE3Controller {
 
 public:
-  BacaSE3Controller(const BacaSE3ControllerParameters &controller_parameters, const VehicleParameters &vehicle_parameters);
+  SE3Controller(const SE3ControllerParameters &controller_parameters, const VehicleParameters &vehicle_parameters);
 
   // the main function that returns the result
   Eigen::VectorXd CalculateRotorVelocities(const FrameData &simulator_model_data, const EigenTwist &control_command,
-                                           const BacaSE3ControllerFeedforward &feedforward_command) const;
+                                           const SE3ControllerFeedforward &feedforward_command) const;
 
 private:
   // | ----------------------- parameters ----------------------- |
 
-  BacaSE3ControllerParameters _controller_parameters_;
-  VehicleParameters           _vehicle_parameters_;
+  SE3ControllerParameters _controller_parameters_;
+  VehicleParameters       _vehicle_parameters_;
 
   bool InitializeParameters();
 
